@@ -41,31 +41,56 @@ export default function FolderProjectDashboard() {
   const [search, setSearch] = useState('');
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [endpointModalOpen, setEndpointModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', description: '' });
+  const [viewRaw, setViewRaw] = useState<RawEndpoint | null>(null);
+  
+  const [newProject, setNewProject] = useState({ id: '', name: '', description: '' });
   const [newEndpoint, setNewEndpoint] = useState({ id: '', name: '', url: '', category: '', projectId: '' });
 
-  // --- Logic ---
+  // --- Logic Login ---
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === 'kakuzu' && password === 'TerbangTerusKontenQue88') setIsLoggedIn(true);
     else alert('Akses Ditolak!');
   };
 
-  const createProject = () => {
+  // --- Logic Project (Create / Edit / Delete) ---
+  const saveProject = () => {
     if (!newProject.name) return alert('Nama project wajib diisi');
-    const p = { ...newProject, id: 'p' + Date.now() };
-    setProjects([...projects, p]);
+    
+    if (newProject.id) {
+      // Logic Update / Edit
+      setProjects(projects.map(p => p.id === newProject.id ? newProject : p));
+    } else {
+      // Logic Create New
+      const p = { ...newProject, id: 'p' + Date.now() };
+      setProjects([...projects, p]);
+    }
+    
     setProjectModalOpen(false);
-    setNewProject({ name: '', description: '' });
+    setNewProject({ id: '', name: '', description: '' });
   };
 
+  const deleteProject = (id: string) => {
+    if (confirm('Menghapus Project akan menghapus seluruh Raw Link di dalamnya. Lanjutkan?')) {
+      setProjects(projects.filter(p => p.id !== id));
+      setRawLinks(rawLinks.filter(r => r.projectId !== id));
+      // Reset seleksi jika yang dihapus adalah project yang sedang dibuka
+      if (selectedProjectId === id) setSelectedProjectId(projects[0]?.id || '');
+    }
+  };
+
+  // --- Logic Endpoint (Create / Edit / Delete) ---
   const saveEndpoint = () => {
     if (!newEndpoint.name || !newEndpoint.url) return alert('Lengkapi data endpoint!');
+    
     if (newEndpoint.id) {
+      // Logic Update / Edit
       setRawLinks(rawLinks.map(r => r.id === newEndpoint.id ? { ...newEndpoint, date: r.date } : r));
     } else {
+      // Logic Create New
       setRawLinks([{ ...newEndpoint, id: 'r' + Date.now(), projectId: selectedProjectId, date: new Date().toLocaleDateString() }, ...rawLinks]);
     }
+    
     setEndpointModalOpen(false);
     setNewEndpoint({ id: '', name: '', url: '', category: '', projectId: '' });
   };
@@ -107,22 +132,29 @@ export default function FolderProjectDashboard() {
 
         <div className="flex justify-between items-center mb-4 px-2">
           <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">My Projects</h3>
-          <button onClick={() => setProjectModalOpen(true)} className="p-1 hover:text-blue-500 transition-colors"><FolderPlus size={18}/></button>
+          <button onClick={() => { setNewProject({id: '', name: '', description: ''}); setProjectModalOpen(true); }} className="p-1 hover:text-blue-500 transition-colors"><FolderPlus size={18}/></button>
         </div>
 
         <nav className="space-y-1 overflow-y-auto flex-1 pr-2">
           {projects.map(p => (
-            <button 
-              key={p.id}
-              onClick={() => setSelectedProjectId(p.id)}
-              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all group ${selectedProjectId === p.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-white/5 text-slate-400'}`}
-            >
-              <div className="flex items-center gap-3 font-semibold text-sm">
-                <Folder size={18} className={selectedProjectId === p.id ? 'text-white' : 'text-blue-500'} />
-                {p.name}
+            <div key={p.id} className="group relative">
+              <button 
+                onClick={() => setSelectedProjectId(p.id)}
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${selectedProjectId === p.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-white/5 text-slate-400'}`}
+              >
+                <div className="flex items-center gap-3 font-semibold text-sm">
+                  <Folder size={18} className={selectedProjectId === p.id ? 'text-white' : 'text-blue-500'} />
+                  {p.name}
+                </div>
+                {selectedProjectId === p.id && <ChevronRight size={14} className="rotate-90" />}
+              </button>
+              
+              {/* Sidebar Action Buttons (Edit/Delete Project) */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button onClick={(e) => { e.stopPropagation(); setNewProject(p); setProjectModalOpen(true); }} className="p-1.5 hover:text-white bg-black/40 rounded-lg text-slate-400"><Edit2 size={12}/></button>
+                 <button onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }} className="p-1.5 hover:text-red-500 bg-black/40 rounded-lg text-slate-400"><Trash2 size={12}/></button>
               </div>
-              <ChevronRight size={14} className={`transition-transform ${selectedProjectId === p.id ? 'rotate-90' : 'opacity-0 group-hover:opacity-100'}`} />
-            </button>
+            </div>
           ))}
         </nav>
 
@@ -138,13 +170,13 @@ export default function FolderProjectDashboard() {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6">
             <div>
               <div className="flex items-center gap-2 text-blue-500 text-xs font-bold uppercase tracking-widest mb-2">
-                <Globe size={14}/> {currentProject?.name} / Endpoints
+                <Globe size={14}/> {currentProject?.name || "No Project Selected"} / Endpoints
               </div>
               <h1 className="text-4xl font-black text-white tracking-tight">Project Dashboard</h1>
               <p className="text-slate-500 mt-1">{currentProject?.description}</p>
             </div>
             <button 
-              onClick={() => setEndpointModalOpen(true)}
+              onClick={() => { setNewEndpoint({ id: '', name: '', url: '', category: '', projectId: selectedProjectId }); setEndpointModalOpen(true); }}
               className="bg-white text-black px-6 py-4 rounded-2xl font-bold hover:bg-blue-600 hover:text-white transition-all shadow-xl flex items-center gap-2"
             >
               <Plus size={20}/> New Endpoint
@@ -165,29 +197,30 @@ export default function FolderProjectDashboard() {
           <div className="space-y-4">
             {filteredEndpoints.length > 0 ? filteredEndpoints.map(endpoint => (
               <div key={endpoint.id} className="glass p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-6 group hover:border-blue-500/30 transition-all premium-shadow">
-                <div className="flex items-center gap-5 w-full md:w-auto">
-                  <div className="bg-white/5 p-4 rounded-2xl text-blue-500"><Code size={24}/></div>
+                <div className="flex items-center gap-5 w-full md:w-auto overflow-hidden">
+                  <div className="bg-white/5 p-4 rounded-2xl text-blue-500 shrink-0"><Code size={24}/></div>
                   <div className="overflow-hidden">
                     <h3 className="text-lg font-bold text-white mb-1 truncate">{endpoint.name}</h3>
                     <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
-                      <span className="text-blue-500 font-bold uppercase">{endpoint.category}</span>
+                      <span className="text-blue-500 font-bold uppercase shrink-0">{endpoint.category}</span>
                       <span>•</span>
-                      <span className="truncate max-w-[200px] md:max-w-md">{endpoint.url}</span>
+                      <span className="truncate">{endpoint.url}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                   <button onClick={() => { setViewRaw(endpoint); }} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all"><Eye size={18}/></button>
+                  <button onClick={() => { setNewEndpoint(endpoint); setEndpointModalOpen(true); }} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-blue-500 transition-all"><Edit2 size={18}/></button>
                   <button onClick={() => { navigator.clipboard.writeText(endpoint.url); alert('URL Endpoint Berhasil di Copy!'); }} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all text-xs uppercase tracking-widest">
-                    <Copy size={16}/> Copy Link
+                    <Copy size={16}/> Copy
                   </button>
                   <button onClick={() => { if(confirm('Hapus endpoint ini?')) setRawLinks(rawLinks.filter(r => r.id !== endpoint.id)); }} className="p-3 text-slate-600 hover:text-red-500 transition-all"><Trash2 size={18}/></button>
                 </div>
               </div>
             )) : (
               <div className="text-center py-20 glass rounded-[3rem] border-dashed border-2 border-white/10">
-                <LinkIcon className="mx-auto text-slate-600 mb-4" size={48}/>
+                <LinkIcon className="mx-auto text-slate-600 mb-4 opacity-30" size={48}/>
                 <p className="text-slate-500 font-medium italic">Belum ada endpoint di project ini.</p>
               </div>
             )}
@@ -195,28 +228,28 @@ export default function FolderProjectDashboard() {
         </div>
       </main>
 
-      {/* --- MODAL PROJECT --- */}
+      {/* --- MODAL PROJECT (ADD / EDIT) --- */}
       {projectModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in zoom-in duration-200">
           <div className="glass w-full max-w-md p-10 rounded-[3rem] border-white/10 shadow-2xl">
-            <h2 className="text-2xl font-bold text-white mb-8 italic">New Folder Project</h2>
+            <h2 className="text-2xl font-bold text-white mb-8 italic">{newProject.id ? 'Edit Project Folder' : 'New Folder Project'}</h2>
             <div className="space-y-4">
               <input type="text" placeholder="Project Name (e.g. Project A)" className="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none focus:border-blue-500 text-sm" value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} />
               <textarea placeholder="Short description..." className="w-full h-24 bg-white/5 border border-white/10 p-4 rounded-xl outline-none focus:border-blue-500 text-sm resize-none" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
               <div className="flex gap-4 pt-4">
                 <button onClick={() => setProjectModalOpen(false)} className="flex-1 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Cancel</button>
-                <button onClick={createProject} className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest">Create Folder</button>
+                <button onClick={saveProject} className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest">{newProject.id ? 'Update Project' : 'Create Folder'}</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- MODAL ENDPOINT --- */}
+      {/* --- MODAL ENDPOINT (ADD / EDIT) --- */}
       {endpointModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in zoom-in duration-200">
           <div className="glass w-full max-w-2xl p-10 rounded-[3rem] border-white/10 shadow-2xl">
-            <h2 className="text-2xl font-bold text-white mb-8">Add Endpoint to {currentProject?.name}</h2>
+            <h2 className="text-2xl font-bold text-white mb-8">{newEndpoint.id ? 'Edit Endpoint' : `Add Endpoint to ${currentProject?.name}`}</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <input type="text" placeholder="Endpoint Name (e.g. API Login)" className="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none focus:border-blue-500 text-sm" value={newEndpoint.name} onChange={e => setNewEndpoint({...newEndpoint, name: e.target.value})} />
@@ -225,14 +258,14 @@ export default function FolderProjectDashboard() {
               <input type="text" placeholder="Raw URL / Endpoint URL" className="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none focus:border-blue-500 text-sm font-mono" value={newEndpoint.url} onChange={e => setNewEndpoint({...newEndpoint, url: e.target.value})} />
               <div className="flex gap-4 pt-4">
                 <button onClick={() => setEndpointModalOpen(false)} className="flex-1 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Discard</button>
-                <button onClick={saveEndpoint} className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest">Save Endpoint</button>
+                <button onClick={saveEndpoint} className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest">{newEndpoint.id ? 'Update Endpoint' : 'Save Endpoint'}</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- MODAL VIEW URL --- */}
+      {/* --- MODAL VIEW URL (PREVIEW) --- */}
       {viewRaw && (
         <div className="fixed inset-0 bg-black/95 z-[200] flex flex-col p-6 lg:p-16 animate-in fade-in duration-300">
           <div className="flex justify-between items-center mb-8">
@@ -241,11 +274,11 @@ export default function FolderProjectDashboard() {
           </div>
           <div className="flex-1 bg-zinc-900/50 rounded-3xl border border-white/5 p-8 lg:p-12 flex flex-col items-center justify-center text-center">
             <div className="p-6 bg-blue-600/10 rounded-full text-blue-500 mb-6"><Globe size={64}/></div>
-            <h3 className="text-2xl font-bold text-white mb-2">Endpoint Active</h3>
-            <p className="text-slate-500 mb-8 max-w-lg font-mono text-sm break-all">{viewRaw.url}</p>
+            <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Endpoint Connection Ready</h3>
+            <p className="text-slate-500 mb-8 max-w-lg font-mono text-sm break-all leading-relaxed bg-black/40 p-4 rounded-xl border border-white/5">{viewRaw.url}</p>
             <div className="flex gap-4">
-              <button onClick={() => { navigator.clipboard.writeText(viewRaw.url); alert('Copied!'); }} className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/5 uppercase text-xs tracking-widest">Copy Link</button>
-              <a href={viewRaw.url} target="_blank" className="px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 transition-all uppercase text-xs tracking-widest flex items-center gap-2">Open Raw <ExternalLink size={16}/></a>
+              <button onClick={() => { navigator.clipboard.writeText(viewRaw.url); alert('Copied!'); }} className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/5 uppercase text-[10px] tracking-widest">Copy Link</button>
+              <a href={viewRaw.url} target="_blank" className="px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 transition-all uppercase text-[10px] tracking-widest flex items-center gap-2">Open Raw <ExternalLink size={16}/></a>
             </div>
           </div>
         </div>
