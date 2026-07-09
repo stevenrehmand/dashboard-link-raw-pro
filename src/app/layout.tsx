@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "RAWLINK - Premium Dashboard",
-  description: "Luxury Raw Link Manager",
+  description: "Luxury Raw Link Manager for Professionals",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body className="bg-[#0a0f1c] text-slate-200 overflow-x-hidden">
+      <body className="bg-[#0a0f1c] text-slate-200">
         {children}
       </body>
     </html>
