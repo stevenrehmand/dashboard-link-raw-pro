@@ -32,9 +32,9 @@ export default function App() {
 
   const slugify = (text: string) => text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
 
-  // --- FUNGSI YANG TADI HILANG ---
+  // --- FUNGSI UNTUK MENGHASILKAN URL LENGKAP DENGAN .txt ---
   const getGeneratedUrl = (endpoint: RawEndpoint) => {
-    return `${baseUrl}/raw/${currentProject?.slug}/${endpoint.slug}`;
+    return `${baseUrl}/raw/${currentProject?.slug}/${endpoint.slug}.txt`;
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -63,25 +63,48 @@ export default function App() {
     }
   };
 
+  // --- Logic Project (Create / Edit / Delete) ---
   const saveProject = () => {
-    if (!newProject.name) return;
-    const p = { id: 'p' + Date.now(), name: newProject.name, slug: slugify(newProject.name) };
-    setProjects([...projects, p]);
-    if (!selectedProjectId) setSelectedProjectId(p.id);
+    if (!newProject.name) return alert('Nama Project wajib diisi!');
+    if (newProject.id) {
+      setProjects(projects.map(p => p.id === newProject.id ? { ...newProject, slug: slugify(newProject.name) } : p));
+    } else {
+      const p = { id: 'p' + Date.now(), name: newProject.name, slug: slugify(newProject.name) };
+      setProjects([...projects, p]);
+      if (!selectedProjectId) setSelectedProjectId(p.id);
+    }
     setProjectModalOpen(false);
     setNewProject({ id: '', name: '' });
   };
 
+  const deleteProject = (id: string) => {
+    if (confirm('Menghapus Project ini akan menghapus semua Endpoint di dalamnya. Lanjutkan?')) {
+      setProjects(projects.filter(p => p.id !== id));
+      setRawLinks(rawLinks.filter(r => r.projectId !== id));
+      if (selectedProjectId === id) {
+        // Pilih project pertama yang tersisa, jika ada
+        setSelectedProjectId(projects.filter(p => p.id !== id)[0]?.id || '');
+      }
+    }
+  };
+
+  // --- Logic Endpoint (Create / Edit / Delete) ---
   const saveEndpoint = async () => {
-    if (!newEndpoint.name || !newEndpoint.content) return;
+    if (!newEndpoint.name || !newEndpoint.content) return alert("Nama Endpoint dan Konten wajib diisi!");
     
     const pSlug = currentProject?.slug;
     const eSlug = slugify(newEndpoint.name);
-    const path = `${pSlug}/${eSlug}.txt`;
+    const path = `${pSlug}/${eSlug}.txt`; // Path di GitHub
 
     const success = await syncToGithub(path, newEndpoint.content);
     if (success) {
-      setRawLinks([{ ...newEndpoint, id: 'r' + Date.now(), projectId: selectedProjectId, slug: eSlug, date: new Date().toLocaleDateString() }, ...rawLinks]);
+      if (newEndpoint.id) {
+        // Edit Endpoint
+        setRawLinks(rawLinks.map(r => r.id === newEndpoint.id ? { ...newEndpoint, slug: eSlug, date: new Date().toLocaleDateString() } : r));
+      } else {
+        // New Endpoint
+        setRawLinks([{ ...newEndpoint, id: 'r' + Date.now(), projectId: selectedProjectId, slug: eSlug, date: new Date().toLocaleDateString() }, ...rawLinks]);
+      }
       setEndpointModalOpen(false);
       setNewEndpoint({ id: '', name: '', content: '', projectId: '' });
     }
@@ -113,13 +136,20 @@ export default function App() {
         </div>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Repositories</h3>
-          <button onClick={() => setProjectModalOpen(true)} className="p-2 bg-blue-600 text-white rounded-xl hover:scale-110 transition-all"><Plus size={16}/></button>
+          <button onClick={() => { setNewProject({id: '', name: ''}); setProjectModalOpen(true); }} className="p-2 bg-blue-600 text-white rounded-xl hover:scale-110 transition-all"><Plus size={16}/></button>
         </div>
         <nav className="space-y-2 overflow-y-auto flex-1">
           {projects.map(p => (
-            <button key={p.id} onClick={() => setSelectedProjectId(p.id)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${selectedProjectId === p.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'hover:bg-white/5 text-slate-400'}`}>
-              <Folder size={18} /> <span className="font-bold text-sm">{p.name}</span>
-            </button>
+            <div key={p.id} className="group relative">
+                <button onClick={() => setSelectedProjectId(p.id)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${selectedProjectId === p.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'hover:bg-white/5 text-slate-400'}`}>
+                  <Folder size={18} /> <span className="font-bold text-sm">{p.name}</span>
+                </button>
+                {/* --- TOMBOL EDIT & DELETE PROJECT --- */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <button onClick={(e) => { e.stopPropagation(); setNewProject(p); setProjectModalOpen(true); }} className="p-2 hover:text-white text-slate-500 transition-colors"><Edit2 size={12}/></button>
+                   <button onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }} className="p-2 hover:text-red-500 text-slate-500 transition-colors"><Trash2 size={12}/></button>
+                </div>
+            </div>
           ))}
         </nav>
         <button onClick={() => setIsLoggedIn(false)} className="mt-8 flex items-center gap-3 text-red-500/60 font-black uppercase text-[10px] tracking-widest"><LogOut size={16}/> Kill Session</button>
@@ -134,7 +164,7 @@ export default function App() {
                   <h1 className="text-5xl font-black text-white tracking-tighter">{currentProject?.name}</h1>
                   <p className="font-mono text-xs text-blue-500 mt-2">raw-srv:/raw/{currentProject?.slug}/</p>
                 </div>
-                <button onClick={() => setEndpointModalOpen(true)} className="bg-white text-black px-10 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-blue-600 hover:text-white transition-all shadow-2xl animate-pulse"><Plus size={20}/> New Endpoint</button>
+                <button onClick={() => { setNewEndpoint({ id: '', name: '', content: '', projectId: selectedProjectId }); setEndpointModalOpen(true); }} className="bg-white text-black px-10 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-blue-600 hover:text-white transition-all shadow-2xl animate-pulse"><Plus size={20}/> New Endpoint</button>
               </div>
 
               <div className="space-y-4">
@@ -151,8 +181,10 @@ export default function App() {
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => setViewRaw(endpoint)} className="p-4 bg-white/5 rounded-2xl hover:text-white"><Eye size={20}/></button>
+                      {/* --- TOMBOL EDIT ENDPOINT --- */}
+                      <button onClick={() => { setNewEndpoint(endpoint); setEndpointModalOpen(true); }} className="p-4 bg-white/5 rounded-2xl hover:text-blue-500 transition-all"><Edit2 size={20}/></button>
                       <button onClick={() => { navigator.clipboard.writeText(getGeneratedUrl(endpoint)); alert('Link Raw Berhasil di Copy!'); }} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-500">Copy URL</button>
-                      <button onClick={() => setRawLinks(rawLinks.filter(r => r.id !== endpoint.id))} className="p-4 text-slate-600 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
+                      <button onClick={() => { if(confirm('Hapus endpoint ini?')) setRawLinks(rawLinks.filter(r => r.id !== endpoint.id)); }} className="p-4 text-slate-600 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
                     </div>
                   </div>
                 ))}
@@ -172,7 +204,7 @@ export default function App() {
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-8">
           <div className="glass w-full max-w-4xl p-12 rounded-[3.5rem] border-white/10 shadow-2xl relative overflow-hidden font-sans">
             {loading && <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 text-blue-500 font-bold uppercase tracking-widest">Pushing to GitHub...</div>}
-            <h2 className="text-4xl font-black text-white mb-10 tracking-tighter uppercase italic">Raw Deployment Detail</h2>
+            <h2 className="text-4xl font-black text-white mb-10 tracking-tighter uppercase italic">{newEndpoint.id ? 'Edit Endpoint Details' : 'Raw Deployment Detail'}</h2>
             <input type="text" placeholder="File Identifier (ex: config-asia)" className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white mb-6 outline-none focus:border-blue-500 font-bold" value={newEndpoint.name} onChange={e => setNewEndpoint({...newEndpoint, name: e.target.value})} />
             <textarea placeholder="Paste your TXT/HTML/Code here..." className="w-full h-96 bg-black/50 border border-white/10 p-8 rounded-[2rem] outline-none focus:border-blue-500 text-blue-200 font-mono text-sm mb-10 resize-none leading-relaxed" value={newEndpoint.content} onChange={e => setNewEndpoint({...newEndpoint, content: e.target.value})} />
             <div className="flex gap-4">
@@ -187,7 +219,7 @@ export default function App() {
       {projectModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center font-sans">
           <div className="glass w-full max-w-md p-12 rounded-[3rem] border-white/10 shadow-2xl text-center">
-             <h2 className="text-2xl font-black text-white mb-8 tracking-tighter uppercase italic">Create Workspace</h2>
+             <h2 className="text-2xl font-black text-white mb-8 tracking-tighter uppercase italic">{newProject.id ? 'Edit Workspace' : 'Create Workspace'}</h2>
              <input type="text" placeholder="Workspace Name" className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white mb-8 outline-none focus:border-blue-500 text-center font-bold" value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} />
              <div className="flex gap-4">
                 <button onClick={() => setProjectModalOpen(false)} className="flex-1 text-slate-500 font-bold uppercase text-[10px] tracking-widest">Cancel</button>
