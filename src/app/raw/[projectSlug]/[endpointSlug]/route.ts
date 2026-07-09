@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { projectSlug: string; endpointSlug: string } }
@@ -9,28 +11,22 @@ export async function GET(
   const repo = process.env.GITHUB_REPO;
   const token = process.env.GITHUB_TOKEN;
 
-  // GitHub Path
-  const path = `${projectSlug}/${endpointSlug}.txt`;
-
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${projectSlug}/${endpointSlug}.txt`, {
       headers: { Authorization: `Bearer ${token}` },
-      next: { revalidate: 0 } // No cache
+      cache: 'no-store'
     });
 
-    if (!res.ok) return new Response("Error: Raw File Not Found on GitHub", { status: 404 });
+    if (!res.ok) return new Response("Raw File Not Found", { status: 404 });
 
     const data = await res.json();
     const rawText = Buffer.from(data.content, 'base64').toString('utf-8');
 
     return new Response(rawText, {
       status: 200,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' },
     });
   } catch (err) {
-    return new Response("Server Connection Error", { status: 500 });
+    return new Response("Error", { status: 500 });
   }
 }
