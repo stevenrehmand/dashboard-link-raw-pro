@@ -1,24 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Paksa agar tidak di-cache sebagai halaman statis
+
 export async function POST(req: NextRequest) {
   try {
     const { path, content } = await req.json();
+    
     const owner = process.env.GITHUB_OWNER;
     const repo = process.env.GITHUB_REPO;
     const token = process.env.GITHUB_TOKEN;
 
-    // Cek SHA file (jika ingin update file yang sudah ada)
+    if (!token || !owner || !repo) {
+      return NextResponse.json({ error: "Missing Env Vars" }, { status: 500 });
+    }
+
+    // 1. Cek SHA
     const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store'
     });
 
     let sha = undefined;
     if (checkRes.ok) {
-      const existingFileData = await checkRes.json();
-      sha = existingFileData.sha;
+      const existingFile = await checkRes.json();
+      sha = existingFile.sha;
     }
 
-    // Upload ke GitHub
+    // 2. Upload
     const uploadRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
       method: 'PUT',
       headers: {
@@ -26,14 +34,18 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `Deployment: Update raw file ${path}`,
+        message: `Cloud Save: ${path}`,
         content: Buffer.from(content).toString('base64'),
         sha: sha
       }),
     });
 
-    const result = await uploadRes.json();
-    return NextResponse.json(result);
+    if (!uploadRes.ok) {
+      const errData = await uploadRes.json();
+      return NextResponse.json({ error: errData.message }, { status: uploadRes.status });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
