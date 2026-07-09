@@ -32,6 +32,11 @@ export default function App() {
 
   const slugify = (text: string) => text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
 
+  // --- FUNGSI YANG TADI HILANG ---
+  const getGeneratedUrl = (endpoint: RawEndpoint) => {
+    return `${baseUrl}/raw/${currentProject?.slug}/${endpoint.slug}`;
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === 'kakuzu' && password === 'TerbangTerusKontenQue88') setIsLoggedIn(true);
@@ -51,7 +56,7 @@ export default function App() {
       if (!res.ok) throw new Error("GitHub Sync Failed");
       return true;
     } catch (err) {
-      alert("Failed to sync with GitHub. Check your Token/Repo.");
+      alert("Failed to sync with GitHub. Pastikan sudah REDEPLOY di Vercel setelah isi Env Vars.");
       return false;
     } finally {
       setLoading(false);
@@ -91,8 +96,8 @@ export default function App() {
             <h1 className="text-3xl font-black italic text-white tracking-tighter">RAW<span className="text-blue-500 not-italic">PRO</span></h1>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="Access ID" className="w-full bg-white/5 border border-white/10 py-4 px-6 rounded-2xl outline-none focus:border-blue-600 text-sm" onChange={e => setUsername(e.target.value)} />
-            <input type="password" placeholder="Access Key" className="w-full bg-white/5 border border-white/10 py-4 px-6 rounded-2xl outline-none focus:border-blue-600 text-sm" onChange={e => setPassword(e.target.value)} />
+            <input type="text" placeholder="Access ID" className="w-full bg-white/5 border border-white/10 py-4 px-6 rounded-2xl outline-none focus:border-blue-600 text-sm font-sans" onChange={e => setUsername(e.target.value)} />
+            <input type="password" placeholder="Access Key" className="w-full bg-white/5 border border-white/10 py-4 px-6 rounded-2xl outline-none focus:border-blue-600 text-sm font-sans" onChange={e => setPassword(e.target.value)} />
             <button className="w-full bg-blue-600 py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20">Authorize Terminal</button>
           </form>
         </div>
@@ -127,9 +132,9 @@ export default function App() {
               <div className="flex justify-between items-center mb-16">
                 <div>
                   <h1 className="text-5xl font-black text-white tracking-tighter">{currentProject?.name}</h1>
-                  <p className="font-mono text-xs text-blue-500 mt-2">v-srv:/{currentProject?.slug}/</p>
+                  <p className="font-mono text-xs text-blue-500 mt-2">raw-srv:/raw/{currentProject?.slug}/</p>
                 </div>
-                <button onClick={() => setEndpointModalOpen(true)} className="bg-white text-black px-10 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-blue-600 hover:text-white transition-all shadow-2xl shadow-white/5 animate-pulse"><Plus size={20}/> New Endpoint</button>
+                <button onClick={() => setEndpointModalOpen(true)} className="bg-white text-black px-10 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-blue-600 hover:text-white transition-all shadow-2xl animate-pulse"><Plus size={20}/> New Endpoint</button>
               </div>
 
               <div className="space-y-4">
@@ -139,12 +144,14 @@ export default function App() {
                       <div className="p-5 bg-white/5 rounded-3xl text-blue-500"><FileText size={24}/></div>
                       <div>
                         <h3 className="text-xl font-bold text-white mb-1">{endpoint.name}.txt</h3>
-                        <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">{baseUrl}/{currentProject?.slug}/{endpoint.slug}</p>
+                        <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest break-all">
+                          {getGeneratedUrl(endpoint)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => setViewRaw(endpoint)} className="p-4 bg-white/5 rounded-2xl hover:text-white"><Eye size={20}/></button>
-                      <button onClick={() => { navigator.clipboard.writeText(`${baseUrl}/${currentProject?.slug}/${endpoint.slug}`); alert('Link Copied!'); }} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-500">Copy URL</button>
+                      <button onClick={() => { navigator.clipboard.writeText(getGeneratedUrl(endpoint)); alert('Link Raw Berhasil di Copy!'); }} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-500">Copy URL</button>
                       <button onClick={() => setRawLinks(rawLinks.filter(r => r.id !== endpoint.id))} className="p-4 text-slate-600 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
                     </div>
                   </div>
@@ -163,7 +170,7 @@ export default function App() {
       {/* MODAL ENDPOINT */}
       {endpointModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-8">
-          <div className="glass w-full max-w-4xl p-12 rounded-[3.5rem] border-white/10 shadow-2xl relative overflow-hidden">
+          <div className="glass w-full max-w-4xl p-12 rounded-[3.5rem] border-white/10 shadow-2xl relative overflow-hidden font-sans">
             {loading && <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 text-blue-500 font-bold uppercase tracking-widest">Pushing to GitHub...</div>}
             <h2 className="text-4xl font-black text-white mb-10 tracking-tighter uppercase italic">Raw Deployment Detail</h2>
             <input type="text" placeholder="File Identifier (ex: config-asia)" className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white mb-6 outline-none focus:border-blue-500 font-bold" value={newEndpoint.name} onChange={e => setNewEndpoint({...newEndpoint, name: e.target.value})} />
@@ -178,7 +185,7 @@ export default function App() {
 
       {/* MODAL PROJECT */}
       {projectModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center font-sans">
           <div className="glass w-full max-w-md p-12 rounded-[3rem] border-white/10 shadow-2xl text-center">
              <h2 className="text-2xl font-black text-white mb-8 tracking-tighter uppercase italic">Create Workspace</h2>
              <input type="text" placeholder="Workspace Name" className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white mb-8 outline-none focus:border-blue-500 text-center font-bold" value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} />
@@ -192,9 +199,12 @@ export default function App() {
 
       {/* MODAL VIEW */}
       {viewRaw && (
-        <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col p-12 animate-in fade-in duration-500">
+        <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col p-12 animate-in fade-in duration-500 font-sans">
            <div className="flex justify-between items-center mb-10">
-              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{viewRaw.name}.txt</h2>
+              <div>
+                <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{viewRaw.name}.txt</h2>
+                <p className="text-blue-500 font-mono text-[10px] mt-1">{getGeneratedUrl(viewRaw)}</p>
+              </div>
               <button onClick={() => setViewRaw(null)} className="p-4 bg-white/5 rounded-full hover:bg-red-500 transition-all text-white"><X size={24}/></button>
            </div>
            <div className="flex-1 bg-zinc-900/50 rounded-[3rem] border border-white/5 p-12 overflow-auto font-mono text-sm text-blue-100/60 leading-relaxed shadow-inner">
