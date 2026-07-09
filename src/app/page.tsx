@@ -29,21 +29,32 @@ export default function App() {
   const [newEndpoint, setNewEndpoint] = useState({ id: '', name: '', content: '', projectId: '' });
 
   // 1. Load Data & Session on Mount
-  useEffect(() => {
+   useEffect(() => {
     if (typeof window !== 'undefined') {
       setBaseUrl(window.location.origin);
       
-      // Load Session
+      // Cek Session
       const savedSession = localStorage.getItem('rawpro_session');
       if (savedSession === 'active') setIsLoggedIn(true);
 
-      // Load Projects
-      const savedProjects = localStorage.getItem('rawpro_projects');
-      if (savedProjects) setProjects(JSON.parse(savedProjects));
+      // FUNGSI LOAD DARI GITHUB
+      const loadFromGithub = async () => {
+        try {
+          const res = await fetch('/api/github/load');
+          const data = await res.json();
+          if (data.projects) setProjects(data.projects);
+          if (data.links) setRawLinks(data.links);
+          
+          // Pilih project pertama secara otomatis jika ada
+          if (data.projects.length > 0 && !selectedProjectId) {
+            setSelectedProjectId(data.projects[0].id);
+          }
+        } catch (err) {
+          console.error("Gagal sinkronisasi dengan GitHub");
+        }
+      };
 
-      // Load Links
-      const savedLinks = localStorage.getItem('rawpro_links');
-      if (savedLinks) setRawLinks(JSON.parse(savedLinks));
+      loadFromGithub();
     }
   }, []);
 
