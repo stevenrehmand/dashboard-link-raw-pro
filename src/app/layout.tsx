@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RAWLINK Dashboard",
-  description: "Professional Raw Link Manager",
+  title: "RAWLINK - Premium Dashboard",
+  description: "Luxury Raw Link Manager",
 };
 
 export default function RootLayout({
@@ -13,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body>{children}</body>
+      <body className="bg-[#0a0f1c] text-slate-200 overflow-x-hidden">
+        {children}
+      </body>
     </html>
   );
 }
