@@ -2,9 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}", // Hanya fokus ke src/app sesuai struktur Anda
   ],
   theme: {
     extend: {
@@ -15,7 +13,6 @@ const config: Config = {
         },
       },
       backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'premium-gradient': 'linear-gradient(to right, #38bdf8, #3b82f6, #6366f1)',
       },
     },
