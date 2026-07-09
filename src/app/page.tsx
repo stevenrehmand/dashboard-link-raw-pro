@@ -1,294 +1,257 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Copy, 
-  ExternalLink, 
-  Plus, 
-  Search, 
-  Trash2, 
-  Edit2, 
-  LayoutDashboard, 
-  Link as LinkIcon, 
-  Settings, 
-  LogOut,
-  ShieldCheck
+  Lock, User, LayoutDashboard, Link as LinkIcon, 
+  Plus, Search, Edit2, Trash2, Copy, 
+  ExternalLink, LogOut, Code, Eye, X, Check
 } from 'lucide-react';
 
-interface RawLink {
-  id: number;
+// --- DATA TYPE ---
+interface RawData {
+  id: string;
   name: string;
-  url: string;
+  content: string;
   category: string;
-  description: string;
   date: string;
 }
 
-export default function PremiumRawDashboard() {
-  const [links, setLinks] = useState<RawLink[]>([
-    { 
-      id: 1, 
-      name: "Sweet Bonanza Pola Gacor", 
-      url: "https://raw.githubusercontent.com/dev/main/sweetbonanza.js", 
-      category: "Pragmatic Play", 
-      description: "Config pola tinggi + bet range terupdate untuk server internasional.", 
-      date: "2026-07-08" 
-    },
-    { 
-      id: 2, 
-      name: "Gates of Olympus Multiplier", 
-      url: "https://raw.githubusercontent.com/dev/main/gates.js", 
-      category: "Pragmatic Play", 
-      description: "Fitur tumble, multiplier otomatis, dan integrasi RTP live API.", 
-      date: "2026-07-07" 
-    },
-  ]);
-
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [search, setSearch] = useState('');
+  
+  // Modal States
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingLink, setEditingLink] = useState<RawLink | null>(null);
-  const [newLink, setNewLink] = useState({ name: '', url: '', category: '', description: '' });
-
-  const filteredLinks = links.filter(l => 
-    l.name.toLowerCase().includes(search.toLowerCase()) || 
-    l.category.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const saveLink = () => {
-    if (!newLink.name || !newLink.url) return alert("Nama dan URL wajib diisi!");
-    
-    if (editingLink) {
-      setLinks(links.map(l => l.id === editingLink.id ? { ...l, ...newLink } : l));
-    } else {
-      setLinks([...links, { 
-        ...newLink, 
-        id: Date.now(), 
-        date: new Date().toISOString().split('T')[0] 
-      }]);
+  const [viewRaw, setViewRaw] = useState<RawData | null>(null);
+  
+  // CRUD States
+  const [links, setLinks] = useState<RawData[]>([
+    { 
+      id: '1', 
+      name: 'Main Config API', 
+      content: '{\n  "status": "active",\n  "version": "1.0.4",\n  "key": "premium_992x"\n}', 
+      category: 'System', 
+      date: '2024-05-20' 
     }
-    closeModal();
+  ]);
+  const [form, setForm] = useState({ id: '', name: '', content: '', category: '' });
+
+  // Login Logic
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === 'admin' && password === 'admin123') {
+      setIsLoggedIn(true);
+    } else {
+      alert('Akses Ditolak: Username atau Password salah!');
+    }
   };
 
-  const closeModal = () => {
+  // CRUD Logic
+  const saveLink = () => {
+    if (!form.name || !form.content) return alert('Lengkapi data!');
+    if (form.id) {
+      setLinks(links.map(l => l.id === form.id ? { ...form, date: l.date } : l));
+    } else {
+      setLinks([{ ...form, id: Date.now().toString(), date: new Date().toLocaleDateString() }, ...links]);
+    }
     setModalOpen(false);
-    setEditingLink(null);
-    setNewLink({ name: '', url: '', category: '', description: '' });
+    setForm({ id: '', name: '', content: '', category: '' });
   };
 
-  const copyLink = (url: string) => {
-    navigator.clipboard.writeText(url);
-    // Kita bisa tambahkan toast notification di sini
-    alert('✅ Link Raw berhasil dicopy ke clipboard!');
-  };
-
-  const deleteLink = (id: number) => {
-    if(confirm('Apakah Anda yakin ingin menghapus link ini?')) {
+  const deleteLink = (id: string) => {
+    if(confirm('Hapus data ini secara permanen?')) {
       setLinks(links.filter(l => l.id !== id));
     }
   };
 
-  return (
-    <div className="min-h-screen flex bg-[#0a0f1c] text-white">
-      
-      {/* --- SIDEBAR PREMIUM --- */}
-      <aside className="fixed left-0 top-0 h-full w-72 glass border-r border-white/5 z-50 flex flex-col">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-premium-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <ShieldCheck size={24} />
+  // --- VIEW: LOGIN PAGE ---
+  if (!isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-6">
+        <div className="glass w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px]"></div>
+          
+          <div className="text-center mb-10">
+            <div className="inline-flex p-4 bg-blue-500/10 rounded-2xl mb-4">
+              <Lock className="text-blue-500" size={32} />
             </div>
-            <h1 className="text-2xl font-black tracking-tighter">
-              RAW<span className="text-sky-400">LINK</span>
-            </h1>
+            <h1 className="text-3xl font-black tracking-tighter">RAW<span className="text-blue-500">PRO</span></h1>
+            <p className="text-slate-400 text-sm mt-2 font-medium tracking-widest uppercase">Secure Access Terminal</p>
           </div>
 
-          <nav className="space-y-2">
-            <button className="w-full flex items-center gap-4 px-4 py-3 bg-white/5 rounded-xl text-sky-400 border border-white/5">
-              <LayoutDashboard size={20} /> Dashboard
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+              <input 
+                type="text" 
+                placeholder="Username" 
+                className="w-full bg-white/5 border border-white/10 py-4 pl-12 pr-4 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+              <input 
+                type="password" 
+                placeholder="Password" 
+                className="w-full bg-white/5 border border-white/10 py-4 pl-12 pr-4 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95">
+              AUTHENTICATE
             </button>
-            <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-white/5 rounded-xl transition-all">
-              <LinkIcon size={20} /> My Links
-            </button>
-            <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-white/5 rounded-xl transition-all">
-              <Settings size={20} /> Settings
-            </button>
-          </nav>
+          </form>
         </div>
+      </div>
+    );
+  }
 
-        <div className="mt-auto p-8">
-          <button className="flex items-center gap-4 text-red-400 hover:text-red-300 transition-colors">
-            <LogOut size={20} /> Logout
-          </button>
+  // --- VIEW: DASHBOARD ---
+  return (
+    <div className="flex min-h-screen">
+      
+      {/* Sidebar */}
+      <aside className="w-72 glass border-r border-white/5 fixed h-full hidden xl:flex flex-col p-8">
+        <div className="flex items-center gap-3 mb-12">
+          <div className="bg-blue-600 p-2 rounded-lg"><Code size={20}/></div>
+          <h2 className="text-xl font-bold">RAWLINK <span className="font-light text-slate-400">PRO</span></h2>
         </div>
+        
+        <nav className="space-y-2 flex-1">
+          <button className="w-full flex items-center gap-4 px-4 py-3 bg-blue-600/10 text-blue-500 rounded-xl font-semibold border border-blue-600/20">
+            <LayoutDashboard size={20}/> Dashboard
+          </button>
+          <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-white/5 rounded-xl transition-all">
+            <LinkIcon size={20}/> My Repository
+          </button>
+        </nav>
+
+        <button onClick={() => setIsLoggedIn(false)} className="flex items-center gap-4 text-red-500/70 hover:text-red-500 px-4 py-3 transition-all font-medium">
+          <LogOut size={20}/> Logout System
+        </button>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="ml-72 flex-1 p-12 overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
+      {/* Main Content */}
+      <main className="xl:ml-72 flex-1 p-8 md:p-12">
+        <div className="max-w-6xl mx-auto">
           
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-16">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-              <h2 className="text-5xl font-extrabold tracking-tight mb-3 bg-gradient-to-br from-white to-slate-500 bg-clip-text text-transparent">
-                Link Raw Manager
-              </h2>
-              <p className="text-slate-400 text-lg">Kelola aset digital raw link Anda dengan standar premium.</p>
+              <h1 className="text-4xl font-black mb-2">Workspace</h1>
+              <p className="text-slate-500">Kelola endpoint raw txt Anda secara profesional.</p>
             </div>
             <button 
-              onClick={() => setModalOpen(true)}
-              className="group flex items-center gap-3 bg-premium-gradient hover:opacity-90 px-8 py-4 rounded-2xl text-white font-bold shadow-2xl shadow-blue-500/20 transition-all active:scale-95"
+              onClick={() => { setForm({ id: '', name: '', content: '', category: '' }); setModalOpen(true); }}
+              className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-xl font-bold hover:bg-blue-500 hover:text-white transition-all shadow-xl"
             >
-              <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" /> 
-              Tambah Link Baru
+              <Plus size={20}/> Create New Raw
             </button>
-          </div>
+          </header>
 
-          {/* Search Bar */}
-          <div className="relative mb-12 group">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-sky-400 transition-colors" size={24} />
+          {/* Search */}
+          <div className="relative mb-10">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={20}/>
             <input 
               type="text" 
-              placeholder="Cari berdasarkan nama atau kategori..." 
-              className="w-full max-w-2xl bg-white/5 border border-white/10 pl-16 pr-8 py-5 rounded-2xl text-lg focus:border-sky-500 focus:bg-white/[0.08] outline-none transition-all shadow-inner"
-              value={search}
+              placeholder="Filter by name or category..." 
+              className="w-full max-w-md bg-white/5 border border-white/10 py-4 pl-14 pr-4 rounded-2xl outline-none focus:border-blue-600 focus:bg-white/[0.07] transition-all"
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          {/* Grid Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-            {filteredLinks.map(link => (
-              <div key={link.id} className="glass-card rounded-3xl p-8 flex flex-col h-full">
+          {/* Table / Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {links.filter(l => l.name.toLowerCase().includes(search.toLowerCase())).map(link => (
+              <div key={link.id} className="glass p-8 rounded-[2rem] glass-hover transition-all">
                 <div className="flex justify-between items-start mb-6">
-                  <span className="px-4 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-full text-xs font-bold tracking-wider uppercase">
-                    {link.category}
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                    {link.category || 'General'}
                   </span>
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => {setEditingLink(link); setNewLink(link); setModalOpen(true);}}
-                      className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => deleteLink(link.id)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <button onClick={() => { setForm(link); setModalOpen(true); }} className="p-2 text-slate-500 hover:text-white"><Edit2 size={16}/></button>
+                    <button onClick={() => deleteLink(link.id)} className="p-2 text-slate-500 hover:text-red-500"><Trash2 size={16}/></button>
                   </div>
                 </div>
+                
+                <h3 className="text-xl font-bold mb-2">{link.name}</h3>
+                <p className="text-slate-500 text-xs mb-8">Dibuat pada {link.date}</p>
 
-                <h3 className="text-2xl font-bold mb-4 line-clamp-1">{link.name}</h3>
-                <p className="text-slate-400 leading-relaxed mb-8 text-sm line-clamp-3">
-                  {link.description}
-                </p>
-
-                <div className="mt-auto">
-                  <div className="bg-black/40 p-4 rounded-xl font-mono text-xs text-sky-200/70 break-all border border-white/5 mb-6 relative group/code">
-                    <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover/code:opacity-100 transition-opacity rounded-xl"></div>
-                    {link.url}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => copyLink(link.url)}
-                      className="flex items-center justify-center gap-2 py-4 bg-white/5 hover:bg-white/10 rounded-xl font-semibold transition-all border border-white/5"
-                    >
-                      <Copy size={18} /> Copy
-                    </button>
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 py-4 bg-premium-gradient rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/20 transition-all"
-                    >
-                      Buka <ExternalLink size={18} />
-                    </a>
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setViewRaw(link)}
+                    className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-semibold transition-all border border-white/5"
+                  >
+                    <Eye size={16}/> View Raw
+                  </button>
+                  <button 
+                    onClick={() => { navigator.clipboard.writeText(link.content); alert('Copied!'); }}
+                    className="flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-600/20"
+                  >
+                    <Copy size={16}/> Copy Text
+                  </button>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Empty State */}
-          {filteredLinks.length === 0 && (
-            <div className="text-center py-24 glass rounded-3xl border-dashed border-2 border-white/10">
-              <div className="text-slate-500 text-xl">Tidak ada link ditemukan.</div>
-            </div>
-          )}
         </div>
       </main>
 
-      {/* --- MODAL DIALOG --- */}
+      {/* --- MODAL FORM --- */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-navy-900/80 backdrop-blur-md flex items-center justify-center z-[100] p-6 animate-in fade-in duration-300">
-          <div className="glass rounded-[2rem] p-10 w-full max-w-xl border border-white/10 shadow-2xl">
-            <div className="flex justify-between items-center mb-10">
-              <h3 className="text-3xl font-bold tracking-tight">
-                {editingLink ? "Edit Data Link" : "Tambah Link Baru"}
-              </h3>
-              <button onClick={closeModal} className="text-slate-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+          <div className="glass w-full max-w-2xl p-10 rounded-[2.5rem] border-white/10 animate-in zoom-in duration-300">
+            <h2 className="text-2xl font-bold mb-8">{form.id ? 'Update Asset' : 'New Raw Asset'}</h2>
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2 ml-1">Nama Project</label>
+              <div className="grid grid-cols-2 gap-4">
                 <input 
-                  type="text" 
-                  placeholder="Contoh: Config API v1" 
-                  className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-sky-500 outline-none transition-all text-lg"
-                  value={newLink.name}
-                  onChange={(e) => setNewLink({...newLink, name: e.target.value})}
+                  type="text" placeholder="Name" 
+                  className="bg-white/5 border border-white/10 p-4 rounded-xl outline-none focus:border-blue-500"
+                  value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                />
+                <input 
+                  type="text" placeholder="Category" 
+                  className="bg-white/5 border border-white/10 p-4 rounded-xl outline-none focus:border-blue-500"
+                  value={form.category} onChange={e => setForm({...form, category: e.target.value})}
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2 ml-1">Kategori</label>
-                <input 
-                  type="text" 
-                  placeholder="Contoh: Backend / JS / Config" 
-                  className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-sky-500 outline-none transition-all"
-                  value={newLink.category}
-                  onChange={(e) => setNewLink({...newLink, category: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2 ml-1">URL Raw</label>
-                <input 
-                  type="text" 
-                  placeholder="https://raw.githubusercontent.com/..." 
-                  className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-sky-500 outline-none transition-all font-mono text-sm"
-                  value={newLink.url}
-                  onChange={(e) => setNewLink({...newLink, url: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2 ml-1">Deskripsi Singkat</label>
-                <textarea 
-                  placeholder="Jelaskan kegunaan link ini..." 
-                  className="w-full p-4 bg-white/5 border border-white/10 rounded-xl h-32 focus:border-sky-500 outline-none transition-all resize-none"
-                  value={newLink.description}
-                  onChange={(e) => setNewLink({...newLink, description: e.target.value})}
-                />
+              <textarea 
+                placeholder="Paste your raw text/code here..." 
+                className="w-full h-64 bg-white/5 border border-white/10 p-5 rounded-xl outline-none focus:border-blue-500 font-mono text-sm resize-none"
+                value={form.content} onChange={e => setForm({...form, content: e.target.value})}
+              />
+              <div className="flex gap-4 pt-4">
+                <button onClick={() => setModalOpen(false)} className="flex-1 py-4 text-slate-400 font-bold">CANCEL</button>
+                <button onClick={saveLink} className="flex-1 py-4 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-all">SAVE CHANGES</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="flex gap-4 mt-12">
-              <button 
-                onClick={closeModal}
-                className="flex-1 py-4 border border-white/10 rounded-2xl text-slate-400 font-semibold hover:bg-white/5 transition-all"
-              >
-                Batal
-              </button>
-              <button 
-                onClick={saveLink}
-                className="flex-1 py-4 bg-premium-gradient rounded-2xl font-bold shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
-              >
-                Simpan Perubahan
+      {/* --- MODAL VIEW RAW --- */}
+      {viewRaw && (
+        <div className="fixed inset-0 bg-black/95 z-[200] flex flex-col p-6 md:p-12 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h2 className="text-2xl font-bold">{viewRaw.name}</h2>
+              <p className="text-blue-500 text-sm">Previewing Raw Content</p>
+            </div>
+            <button onClick={() => setViewRaw(null)} className="p-4 bg-white/5 rounded-full hover:bg-red-500 transition-all">
+              <X size={24}/>
+            </button>
+          </div>
+          <div className="flex-1 bg-zinc-900 rounded-3xl border border-white/5 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-3 bg-white/5 border-b border-white/5">
+              <span className="text-xs font-mono text-slate-500 tracking-widest uppercase font-bold">Text Content</span>
+              <button onClick={() => { navigator.clipboard.writeText(viewRaw.content); alert('Copied!'); }} className="text-xs hover:text-blue-500 flex items-center gap-2">
+                <Copy size={12}/> Copy All
               </button>
             </div>
+            <pre className="flex-1 p-8 overflow-auto text-sm text-blue-100/80 leading-relaxed font-mono">
+              {viewRaw.content}
+            </pre>
           </div>
         </div>
       )}
